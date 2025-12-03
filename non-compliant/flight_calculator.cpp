@@ -143,7 +143,6 @@ struct WindData {
             history_buffer[i] = ias_history[i];
         }
 
-        // Perform some analysis (e.g., find max and average speed)
         double max_ias = 0;
         double sum_ias = 0;
         for (size_t i = 0; i < ias_history.size(); ++i) {

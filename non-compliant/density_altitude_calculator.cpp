@@ -185,7 +185,7 @@ int main(int argc, char* argv[]) {
     }
     
     // ========================================================================
-    // REMOVE BEFORE FLIGHT - Memory allocation
+    // REMOVE BEFORE FLIGHT - Exception
     // ========================================================================
     try {
         double pressure_altitude_ft = parse_double(args[0]);

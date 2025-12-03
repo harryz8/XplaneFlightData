@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <numbers>
 #include <cstdlib>
+#include <array>
 #include <jsf_types.h>
 
 namespace xplane_mfd::calc {
@@ -349,6 +350,36 @@ void print_json_results(const WindData& wind, const EnvelopeMargins& envelope,
     std::cout << "}\n";
 }
 
+// A JSF-compliant ring buffer for managing sensor history.
+// AV Rule 206: All memory is contained within the struct and is fixed at compile time.
+struct SensorHistoryBuffer {
+    //  The pre-allocated, fixed-size buffer.
+    std::array<Float64, max_ias_history> data;
+    
+    Int32 head_index = 0; 
+    Int32 current_size = 0;
+
+    void add_reading(Float64 new_ias) {
+        data[head_index] = new_ias;
+        
+        // Move the head to the next position, wrapping around if necessary.
+        head_index = (head_index + 1) % max_ias_history;
+        
+        // The buffer size grows until it's full.
+        if (current_size < max_ias_history) {
+            current_size++;
+        }
+    }
+
+    const Float64* get_data_ptr() const {
+        return data.data();
+    }
+    
+    Int32 get_size() const {
+        return current_size;
+    }
+};
+
 } // namespace xplane_mfd::calc
 
 // AV Rule 113: Single exit point
@@ -405,15 +436,22 @@ int main(int argc, char* argv[]) {
             std::cerr << "Error: Invalid numeric argument\n";
             return_code = error_parse_failed;
         } else {
-            // AV Rule 144: Array initialization (single-dimensional array)
-            // Note: Double braces are only required for multi-dimensional arrays
-            Float64 ias_history[max_ias_history] = {145.5, 148.0, 151.2, 149.5, 155.8, 152.1};
-            Int32 history_size = 6;
+            // 1. Pre-allocate the buffer at initialization (on the stack).
+            // This happens ONCE. No memory is allocated inside any loops.
+            SensorHistoryBuffer ias_buffer;
+
+            for (Int32 i = 0; i < 30; ++i) {
+                Float64 new_reading = 150.0 + (i % 7) - 3.0;
+                
+                ias_buffer.add_reading(new_reading);
+            }
             
-            // 1. Calculate wind vector
-            WindData wind = calculate_wind_vector(tas_kts, gs_kts, heading, track, ias_history, history_size);
+            WindData wind = calculate_wind_vector(
+                tas_kts, gs_kts, heading, track,
+                ias_buffer.get_data_ptr(), ias_buffer.get_size()
+            );
             
-            // 2. Calculate envelope margins (removed unused parameters)
+            // 2. Calculate envelope margins
             EnvelopeMargins envelope = calculate_envelope(
                 bank_deg, ias_kts, mach,
                 vso_kts, vne_kts, mmo
