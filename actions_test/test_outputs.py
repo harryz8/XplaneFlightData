@@ -198,10 +198,10 @@ def compare_json(expected, actual, tol=1e-2):
 
 def main():
     test_turn_calculator()
-    test_vnav_calculator()
     test_density_altitude_calculator()
     test_wind_calculator()
     test_flight_calculator()
+    test_vnav_calculator()
 
 if __name__ == "__main__":
     main()
