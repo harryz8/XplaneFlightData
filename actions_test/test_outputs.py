@@ -114,11 +114,11 @@ def test_wind_calculator():
     arguments = ["090", "085", "240", "60"]
 
     expected_output = {
-    "headwind": 51.96,
-    "crosswind": 30.00,
-    "total_wind": 60.00,
-    "wca": 0.00,
-    "drift": 5.00
+        "headwind": 51.96,
+        "crosswind": 30.00,
+        "total_wind": 60.00,
+        "wca": 0.00,
+        "drift": 5.00
     }
     
     test_calculator("wind_calculator", arguments, expected_output)
