@@ -25,6 +25,7 @@
 #include <numbers>
 #include <cstdlib>
 #include <array>
+#include <vector>
 #include "jsf_types.h"
 
 namespace xplane_mfd::calc {
