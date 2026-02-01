@@ -204,9 +204,9 @@ void print_usage(const char* program_name) {
 int main(int argc, char* argv[]) {
     using namespace xplane_mfd::calc;
     
-    const std::vector<std::string_view> args(argv + 1, argv + argc);
+    Int32 return_code = error_success; // hint
     
-    if (args.size() != 4 && args.size() != 5) {
+    if (argc != 5 && argc != 6) {
         print_usage(argv[0]);
         return 1;
     }
@@ -215,15 +215,17 @@ int main(int argc, char* argv[]) {
     // REMOVE BEFORE FLIGHT - Exception
     // ========================================================================
     try {
-        double pressure_altitude_ft = parse_double(args[0]);
-        double oat_celsius = parse_double(args[1]);
-        double ias_kts = parse_double(args[2]);
-        double tas_kts = parse_double(args[3]);
+        double pressure_altitude_ft = parse_double(argv[1]);
+        double oat_celsius = parse_double(argv[2]);
+        double ias_kts = parse_double(argv[3]);
+        double tas_kts = parse_double(argv[4]);
         
         // Check for force exception flag
         bool force_exception = false;
-        if (args.size() == 5) {
-            force_exception = (args[4] == "1" || args[4] == "true");
+        if (argc == 6) {
+            force_exception =
+                (std::strcmp(argv[5], "1") == 0 ||
+                std::strcmp(argv[5], "true") == 0);
         }
         
         if (force_exception) {

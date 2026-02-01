@@ -5,21 +5,26 @@ import json
 
 
 def test_density_altitude_calculator():
-
     arguments = ["5000", "25", "150", "170"]
 
     expected_output = {
-    "density_altitude_ft": 7388.72,
-    "pressure_altitude_ft": 5000.00,
-    "air_density_ratio": 0.80,
-    "temperature_deviation_c": 19.91,
-    "performance_loss_pct": 19.59,
-    "eas_kts": 152.45,
-    "tas_to_ias_ratio": 1.13,
-    "pressure_ratio": 0.83
+        "density_altitude_ft": 7388.72,
+        "pressure_altitude_ft": 5000.00,
+        "air_density_ratio": 0.80,
+        "temperature_deviation_c": 19.91,
+        "performance_loss_pct": 19.59,
+        "eas_kts": 152.45,
+        "tas_to_ias_ratio": 1.13,
+        "pressure_ratio": 0.83
     }
 
-    test_calculator("density_altitude_calculator", arguments, expected_output)
+    exit_code = 0
+    if not test_calculator("density_altitude_calculator", arguments, expected_output):
+        exit_code = 1
+    if not test_calculator("density_altitude_calculator", arguments + ["1"], expected_return_code=3):
+        exit_code = 1
+
+    return exit_code == 0
 
 def test_flight_calculator():
     arguments = [
@@ -73,7 +78,7 @@ def test_flight_calculator():
         }
     }
 
-    test_calculator("flight_calculator", arguments, expected_output)
+    return test_calculator("flight_calculator", arguments, expected_output)
 
 def test_turn_calculator():
     arguments = ["250", "25", "90"]
@@ -89,7 +94,7 @@ def test_turn_calculator():
         "standard_rate_bank": 34.48
     }
     
-    test_calculator("turn_calculator", arguments, expected_output)
+    return test_calculator("turn_calculator", arguments, expected_output)
 
 def test_vnav_calculator():
     arguments = ["35000", "10000", "100", "450", "-1500"]
@@ -105,7 +110,7 @@ def test_vnav_calculator():
         "is_descent": True
     }
     
-    test_calculator("vnav_calculator", arguments, expected_output)
+    return test_calculator("vnav_calculator", arguments, expected_output)
 
 def test_wind_calculator():
     arguments = ["090", "085", "240", "60"]
@@ -118,45 +123,57 @@ def test_wind_calculator():
         "drift": 5.00
     }
     
-    test_calculator("wind_calculator", arguments, expected_output)
+    return test_calculator("wind_calculator", arguments, expected_output)
 
-def test_calculator(filename, arguments, expected_output):
-    print("Testing " + filename)
+def test_calculator(filename, arguments, expected_output=None, expected_return_code=0):
+    print(f"Testing {filename}")
     script_dir = Path(__file__).parent
-    calculator_path = script_dir / (filename)
+    calculator_path = script_dir / filename
 
     if not calculator_path.exists():
-        print(filename + " not found")
-        exit(1)
+        print(f"{filename} not found")
+        return False
 
     result = subprocess.run(
-                    [str(calculator_path)] + arguments,
-                    capture_output=True,
-                    text=True,
-                    timeout=2.0
-                )
+        [str(calculator_path)] + arguments,
+        capture_output=True,
+        text=True,
+        timeout=2.0
+    )
 
-    if result.returncode != 0:
-        error_lines = result.stderr.strip().split('\n')
-        # Get the actual error message (first line after "Error:")
-        error_msg = "Unknown C++ error"
-        for line in error_lines:
-            if line.startswith("Error:"):
-                error_msg = line.replace("Error:", "").strip()
-                break
-        print(error_msg)
-        exit(1)
+    # ---- RETURN CODE CHECK ----
+    if result.returncode != expected_return_code:
+        print(
+            f"❌ Return code mismatch: "
+            f"expected {expected_return_code}, got {result.returncode}"
+        )
 
-    output_data = json.loads(result.stdout)
+        return False
+
+    # ---- EXPECTED FAILURE CASE ----
+    if expected_return_code != 0:
+        # We expected an error and got it
+        print(f"✅ Expected failure (return code {expected_return_code})")
+        return True
+
+    # ---- SUCCESS CASE (JSON VALIDATION) ----
+    try:
+        output_data = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        print("❌ Output was not valid JSON")
+        print(result.stdout)
+        return False
+
     errors = compare_json(expected_output, output_data)
 
     if errors:
         print("❌ JSON mismatch:")
         for err in errors:
             print(f" - {err}")
-        exit(1)
+        return False
     else:
         print("✅ Output matches expected data")
+        return True
 
 def compare_json(expected, actual, tol=1e-2):
     errors = []
@@ -191,12 +208,28 @@ def compare_json(expected, actual, tol=1e-2):
 
     return errors
 
+def run_test(test_fn):
+    """Run a test function and return True if it passed, False otherwise."""
+    result = test_fn()
+    if not result:
+        print(f"❌ {test_fn.__name__} FAILED\n")
+    return result
+
 def main():
-    test_turn_calculator()
-    test_vnav_calculator()
-    test_density_altitude_calculator()
-    test_wind_calculator()
-    test_flight_calculator()
+    tests = [
+        test_turn_calculator,
+        test_vnav_calculator,
+        test_density_altitude_calculator,
+        test_wind_calculator,
+        test_flight_calculator
+    ]
+
+    any_failures = False
+    for test_fn in tests:
+        if not run_test(test_fn):
+            any_failures = True
+
+    exit(1 if any_failures else 0)
 
 if __name__ == "__main__":
     main()

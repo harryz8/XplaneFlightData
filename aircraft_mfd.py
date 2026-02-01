@@ -894,17 +894,22 @@ class AircraftMFD:
                 # Return code 1 = uncaught exception (non-compliant version)
                 # Return code 3 = gracefully handled error (compliant version)
                 if self.display_mode == 9 and result.returncode == 1 and not self.has_cpp_error:
-                    # Only show big X for actual exceptions (non-compliant behavior)
                     # Extract error message from stderr
                     error_lines = result.stderr.strip().split('\n')
-                    # Get the actual error message (first line after "Error:")
                     error_msg = "Unknown C++ error"
                     for line in error_lines:
                         if line.startswith("Error:"):
                             error_msg = line.replace("Error:", "").strip()
                             break
+
+                    # Show error overlay with shutdown notice
+                    self.show_error_overlay(f"{error_msg}\n\nSYSTEM SHUTTING DOWN...")
+
+                    # Quit application after 5 seconds (non-blocking so UI can render)
+                    self.root.after(5000, self.root.quit)
                     
-                    # Show error overlay for uncaught exceptions only
+                elif self.display_mode == 9 and result.returncode == 3 and not self.has_cpp_error:
+                    error_msg = "Error: Handled error occurred in CDA calculator. Program will no longer crash"
                     self.show_error_overlay(error_msg)
                 
                 return None
