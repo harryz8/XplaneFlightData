@@ -117,15 +117,24 @@ Float64 normalize_angle(Float64 angle) {
  *          (5 nearby airports, choose 2 as alternates = 10 possible combinations)
  */
 [[nodiscard]] unsigned long long binomial_coefficient(unsigned int n, unsigned int k) {
-    // Base cases
-    if (k > n) return 0;           // Can't choose more than available
-    if (k == 0 || k == n) return 1; // C(n,0) = C(n,n) = 1
-    if (k == 1) return n;           // C(n,1) = n
-    
-    // Recursive relation: C(n,k) = C(n-1,k-1) + C(n-1,k)
-    // This represents: either include current item or don't
-    return binomial_coefficient(n - 1, k - 1) + binomial_coefficient(n - 1, k);
+    if (k > n) return 0;
+    unsigned long long ret_val = 1.0;
+    for (unsigned int i=n; i>k; i--) {
+        unsigned long long diff = (n-i)+1;
+        ret_val = ret_val * i/diff;
+    }
+    return ret_val;
 }
+// [[nodiscard]] unsigned long long binomial_coefficient(unsigned int n, unsigned int k) {
+//     // Base cases
+//     if (k > n) return 0;           // Can't choose more than available
+//     if (k == 0 || k == n) return 1; // C(n,0) = C(n,n) = 1
+//     if (k == 1) return n;           // C(n,1) = n
+    
+//     // Recursive relation: C(n,k) = C(n-1,k-1) + C(n-1,k)
+//     // This represents: either include current item or don't
+//     return binomial_coefficient(n - 1, k - 1) + binomial_coefficient(n - 1, k);
+// }
 
 // 1. Wind vector calculation
 struct WindData {
